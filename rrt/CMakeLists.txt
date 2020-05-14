@@ -18,6 +18,7 @@ catkin_package(
  LIBRARIES rrt
  CATKIN_DEPENDS
         roscpp
+        rospy
         std_msgs
 )
 
@@ -129,6 +130,9 @@ include_directories(
   ${EIGEN3_INCLUDE_DIR}
 )
 
+add_executable(rrt src/points_and_lines.cpp)
+add_dependencies(rrt ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+target_link_libraries(rrt ${catkin_LIBRARIES})
 ## Declare a C++ library
 # add_library(${PROJECT_NAME}
 #   src/${PROJECT_NAME}/rrt.cpp
@@ -164,18 +168,18 @@ include_directories(
 #############
 
 ## Install executables and/or libraries
-#install(TARGETS rrt
-#        ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-#        LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-#        RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})
+install(TARGETS rrt
+        ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+        LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+        RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})
 
 ### Install project namespaced headers
-#install(DIRECTORY include/rrt/
-#        DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION})
+install(DIRECTORY include/rrt/
+        DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION})
 
-#install(DIRECTORY launch/
-#        DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/launch
-#        PATTERN ".svn" EXCLUDE)
+install(DIRECTORY launch/
+        DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/launch
+        PATTERN ".svn" EXCLUDE)
 
 # all install targets should use catkin DESTINATION variables
 # See http://ros.org/doc/api/catkin/html/adv_user_guide/variables.html
