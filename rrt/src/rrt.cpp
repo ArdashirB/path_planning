@@ -5,18 +5,18 @@ RRT::RRT() : nh_("")
 {
 //   add subscribers and init functions
 	//occ_grid_sub_ =  nh_.subscribe("occupancy_map", 1000, &RRT::occGridCallback, this);
-	marker_pub_ = nh_.advertise<visualization_msgs::Marker>("visualization_marker", 10);
+	marker_pub_ = nh_.advertise<visualization_msgs::Marker>("rrt_visualization", 10);
     //obstacles = new Obstacles;
     start_pos_.x() = 10.0;
-    start_pos_.y() = 10.0;
-    end_pos_.x() = 20.0;
-    end_pos_.y() = 20.0;
+    start_pos_.y() = 0.0;
+    end_pos_.x() = 0.0;
+    end_pos_.y() = 0.0;
     root_ = new Node;
     root_->parent = NULL;
     root_->position = start_pos_;
     last_node_ = root_;
     nodes_.push_back(root_);
-    step_size_ = 3;
+    step_size_ = 1;
     max_iter_ = 3000;
 	planPath();
 };
@@ -42,10 +42,19 @@ int main(int argc, char **argv)
 Node* RRT::getRandomNode()
 {
     Node* ret;
-    Vector2f point(drand48() * map_width_ ,drand48() * map_height_);
+    // Vector2f point(drand48() * map_width_ ,drand48() * map_height_);
+    std::random_device dev;
+    std::mt19937 rng(dev());
+    std::uniform_int_distribution<std::mt19937::result_type> dist(0, 40);
+    int it1 = dist(rng);
+    int it2 = dist(rng);;
+
+    Vector2f point(it1, it2);
     if (point.x() >= 0 && point.x() <= map_width_ && point.y() >= 0 && point.y() <= map_height_) {
         ret = new Node;
         ret->position = point;
+        std::cout<<it1<<"\n";
+        std::cout<<it2<<"\n";
         return ret;
     }
     return NULL;
@@ -98,39 +107,43 @@ bool RRT::reached()
 
 void RRT::planPath(){
 	// RRT Algorithm
-		for(int i = 0; i < max_iter_; i++) {
-			Node *q = getRandomNode();
-			if (q) {
-				Node *qNearest = nearest(q->position);
-				if (distance(q->position, qNearest->position) > step_size_) {
-					Vector2f new_config = newConfig(q, qNearest);
-					if (true) {//{!rrt->obstacles->isSegmentInObstacle(newConfig, qNearest->position)
-						Node *qNew = new Node;
-						qNew->position = new_config;
-						add(qNearest, qNew);
-					}
-				}
-			if (reached()) {
-			std::cout << "Reached Destination" << std::endl;
-			break;
+	for(int i = 0; i < max_iter_; i++) {
+		std::cout<<i<<"\n";
+		Node *q = getRandomNode();
+		if (q) {
+			Node *qNearest = nearest(q->position);
+			if (distance(q->position, qNearest->position) > step_size_) {
+				Vector2f new_config = newConfig(q, qNearest);
+				if (true) {//{!rrt->obstacles->isSegmentInObstacle(newConfig, qNearest->position)
+					Node *qNew = new Node;
+					qNew->position = new_config;
+                    std::cout<<qNew->position.x()<<"\n";
+                    std::cout<<qNew->position.y()<<"\n";
+					add(qNearest, qNew);
 				}
 			}
-			if (reached()) {
-				q = last_node_;
-			}
-			else
-			{
-				// if not reached yet, then shortestPath will start from the closest node to end point.
-				q = nearest(end_pos_);
-				std::cout << "Exceeded max iterations!" << std::endl;
-			}
-			// generate shortest path to destination.
-			while (q != NULL) {
-				path_.push_back(q);
-				q = q->parent;
-			}
-			viz();
-		}
+        }
+        if (reached()) {
+		    std::cout << "Reached Destination" << std::endl;
+		    break;
+        }
+	}
+    Node *q;
+    if (reached()) {
+        q = last_node_;
+    }
+    else
+    {
+        // if not reached yet, then shortestPath will start from the closest node to end point.
+        q = nearest(end_pos_);
+        std::cout << "Exceeded max iterations!" << std::endl;
+    }
+    // generate shortest path to destination.
+    while (q != NULL) {
+        path_.push_back(q);
+        q = q->parent;
+    }
+    viz();
 }
 
 void RRT::viz(){
@@ -140,7 +153,9 @@ void RRT::viz(){
   while (ros::ok())
   {
 // %Tag(MARKER_INIT)%
-    visualization_msgs::Marker points, line_strip, line_list;
+    visualization_msgs::Marker points {};
+    visualization_msgs::Marker line_strip{};
+    visualization_msgs::Marker line_list {};
     points.header.frame_id = line_strip.header.frame_id = line_list.header.frame_id = "/map";
     points.header.stamp = line_strip.header.stamp = line_list.header.stamp = ros::Time::now();
     points.ns = line_strip.ns = line_list.ns = "rrt_path";

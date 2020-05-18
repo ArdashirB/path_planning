@@ -11,6 +11,7 @@
 #include <cmath>
 #include <Eigen/Core>
 #include <tuple>
+#include <random>
 
 using namespace Eigen;
 
@@ -37,7 +38,7 @@ class RRT{
     
     //Member variables
     std::tuple<int, int> start_node_ {10, 10};
-    std::tuple<int, int> goal_node_ {20, 20};
+    std::tuple<int, int> goal_node_ {40, 40};
     std::shared_ptr <nav_msgs::OccupancyGrid> occ_grid_;
 	
 	int max_iter_;
@@ -47,8 +48,8 @@ class RRT{
     Vector2f start_pos_ , end_pos_;
 	std::vector<Node *> path_;
     
-    unsigned int map_width_ {}; //get from subscribers
-    unsigned int map_height_ {};
+    unsigned int map_width_ {40}; //get from subscribers
+    unsigned int map_height_ {40};
     std::vector<std::tuple<int, int>> obstacles_;
     
     //Member functions
