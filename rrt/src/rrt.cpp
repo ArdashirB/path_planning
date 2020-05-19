@@ -204,7 +204,6 @@ void RRT::vizStartAndGoal()
 }
 
 void RRT::vizPath(){
-// %Tag(MARKER_INIT)%
     visualization_msgs::Marker points {};
     visualization_msgs::Marker line_strip{};
     visualization_msgs::Marker line_list {};
@@ -213,45 +212,26 @@ void RRT::vizPath(){
     points.ns = line_strip.ns = line_list.ns = "rrt_path";
     points.action = line_strip.action = line_list.action = visualization_msgs::Marker::ADD;
     points.pose.orientation.w = line_strip.pose.orientation.w = line_list.pose.orientation.w = 1.0;
-// %EndTag(MARKER_INIT)%
-
-// %Tag(ID)%
     points.id = 0;
     line_strip.id = 1;
     line_list.id = 2;
-// %EndTag(ID)%
-
-// %Tag(TYPE)%
     points.type = visualization_msgs::Marker::POINTS;
     line_strip.type = visualization_msgs::Marker::LINE_STRIP;
     line_list.type = visualization_msgs::Marker::LINE_LIST;
-// %EndTag(TYPE)%
-
-// %Tag(SCALE)%
-    // POINTS markers use x and y scale for width/height respectively
     points.scale.x = 0.2;
     points.scale.y = 0.2;
-
-    // LINE_STRIP/LINE_LIST markers use only the x component of scale, for the line width
     line_strip.scale.x = 0.1;
     line_list.scale.x = 0.1;
-// %EndTag(SCALE)%
-
-// %Tag(COLOR)%
     // Points are green
     points.color.g = 1.0f;
     points.color.a = 1.0;
-
     // Line strip is blue
     line_strip.color.b = 1.0;
     line_strip.color.a = 1.0;
+    // // Line list is red
+    // line_list.color.r = 1.0;
+    // line_list.color.a = 1.0;
 
-    // Line list is red
-    line_list.color.r = 1.0;
-    line_list.color.a = 1.0;
-// %EndTag(COLOR)%
-
-// %Tag(HELIX)%
     // Create the vertices for the points and lines
     for (auto node: path_)
     {
@@ -259,20 +239,15 @@ void RRT::vizPath(){
       p.x = double(node->position.x());
       p.y = double(node->position.y());
       p.z = 0;
-
       points.points.push_back(p);
       line_strip.points.push_back(p);
-
 //      // The line list needs two points for each line
 //      line_list.points.push_back(p);
 //      line_list.points.push_back(p);
     }
-// %EndTag(HELIX)%
-
     marker_pub_.publish(points);
     marker_pub_.publish(line_strip);
     //marker_pub.publish(line_list);
-
 }
 
 void RRT::viz(){
