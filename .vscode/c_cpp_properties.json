@@ -1,0 +1,28 @@
+{
+    "configurations": [
+        {
+            "browse": {
+                "databaseFilename": "",
+                "limitSymbolsToIncludedHeaders": true
+            },
+            "includePath": [
+                "/home/ardashir/ardarshir_ws/devel/include/**",
+                "/opt/ros/kinetic/include/**",
+                "/home/ardashir/rrt_ws/src/path_planning/include/**",
+                "/home/ardashir/ardarshir_ws/src/f110-fall2018-skeletons/system/racecar/ackermann_cmd_mux/include/**",
+                "/home/ardashir/ardarshir_ws/src/f110-fall2018-skeletons/system/hokuyo_node/include/**",
+                "/home/ardashir/rrt_ws/src/path_planning/rrt/include/**",
+                "/home/ardashir/ardarshir_ws/src/f110-fall2018-skeletons/system/serial/include/**",
+                "/home/ardashir/ardarshir_ws/src/f110-fall2018-skeletons/system/vesc/vesc_ackermann/include/**",
+                "/home/ardashir/ardarshir_ws/src/f110-fall2018-skeletons/system/vesc/vesc_driver/include/**",
+                "/usr/include/**"
+            ],
+            "name": "ROS",
+            "intelliSenseMode": "gcc-x64",
+            "compilerPath": "/usr/bin/gcc",
+            "cStandard": "gnu11",
+            "cppStandard": "gnu++14"
+        }
+    ],
+    "version": 4
+}

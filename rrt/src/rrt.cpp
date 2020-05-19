@@ -6,18 +6,21 @@ RRT::RRT() : nh_("")
 //   add subscribers and init functions
 	//occ_grid_sub_ =  nh_.subscribe("occupancy_map", 1000, &RRT::occGridCallback, this);
 	marker_pub_ = nh_.advertise<visualization_msgs::Marker>("rrt_visualization", 10);
+    vis_pub_start_ = nh_.advertise<visualization_msgs::Marker>("start_visualization", 10);
+    vis_pub_goal_ = nh_.advertise<visualization_msgs::Marker>("goal_visualization", 10);
     //obstacles = new Obstacles;
-    start_pos_.x() = 10.0;
-    start_pos_.y() = 0.0;
-    end_pos_.x() = 0.0;
-    end_pos_.y() = 0.0;
+    start_pos_.x() = std::get<0>(start_node_);
+    start_pos_.y() = std::get<1>(start_node_);
+    end_pos_.x() = std::get<0>(goal_node_);;
+    end_pos_.y() = std::get<1>(goal_node_);;
     root_ = new Node;
     root_->parent = NULL;
     root_->position = start_pos_;
     last_node_ = root_;
     nodes_.push_back(root_);
     step_size_ = 1;
-    max_iter_ = 3000;
+
+
 	planPath();
 };
 
@@ -45,16 +48,16 @@ Node* RRT::getRandomNode()
     // Vector2f point(drand48() * map_width_ ,drand48() * map_height_);
     std::random_device dev;
     std::mt19937 rng(dev());
-    std::uniform_int_distribution<std::mt19937::result_type> dist(0, 40);
+    std::uniform_int_distribution<std::mt19937::result_type> dist(0, map_height_);
     int it1 = dist(rng);
-    int it2 = dist(rng);;
+    int it2 = dist(rng);
 
     Vector2f point(it1, it2);
     if (point.x() >= 0 && point.x() <= map_width_ && point.y() >= 0 && point.y() <= map_height_) {
         ret = new Node;
         ret->position = point;
-        std::cout<<it1<<"\n";
-        std::cout<<it2<<"\n";
+        // std::cout<<it1<<"\n";
+        // std::cout<<it2<<"\n";
         return ret;
     }
     return NULL;
@@ -107,8 +110,8 @@ bool RRT::reached()
 
 void RRT::planPath(){
 	// RRT Algorithm
+    auto start_time = std::chrono::high_resolution_clock::now();
 	for(int i = 0; i < max_iter_; i++) {
-		std::cout<<i<<"\n";
 		Node *q = getRandomNode();
 		if (q) {
 			Node *qNearest = nearest(q->position);
@@ -117,14 +120,14 @@ void RRT::planPath(){
 				if (true) {//{!rrt->obstacles->isSegmentInObstacle(newConfig, qNearest->position)
 					Node *qNew = new Node;
 					qNew->position = new_config;
-                    std::cout<<qNew->position.x()<<"\n";
-                    std::cout<<qNew->position.y()<<"\n";
+                    // std::cout<<qNew->position.x()<<"\n";
+                    // std::cout<<qNew->position.y()<<"\n";
 					add(qNearest, qNew);
 				}
 			}
         }
         if (reached()) {
-		    std::cout << "Reached Destination" << std::endl;
+		    std::cout << "Reached Destination at iteration: "<< i << std::endl;
 		    break;
         }
 	}
@@ -143,15 +146,64 @@ void RRT::planPath(){
         path_.push_back(q);
         q = q->parent;
     }
+    auto stop_time = std::chrono::high_resolution_clock::now();
+    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop_time - start_time);
+    std::cout<<"Execution Time: "<< duration.count() << " milliseconds" << std::endl;
     viz();
 }
 
-void RRT::viz(){
-  ros::Rate r(30);
+void RRT::vizStartAndGoal()
+{
+  visualization_msgs::Marker start;
+  start.header.frame_id = "/map";
+  start.header.stamp = ros::Time();
+  start.ns = "rrt_start_goal_points";
+  start.id = 0;
+  start.type = visualization_msgs::Marker::SPHERE;
+  start.action = visualization_msgs::Marker::ADD;
+//start.action = 2;
+  start.pose.position.x = std::get<0>(start_node_);
+  start.pose.position.y = std::get<1>(start_node_);
+  start.pose.position.z = 0.0;
+  start.pose.orientation.x = 0.0;
+  start.pose.orientation.y = 0.0;
+  start.pose.orientation.z = 0.0;
+  start.pose.orientation.w = 1.0;
+  start.scale.x = 1;
+  start.scale.y = 1;
+  start.scale.z = 1;
+  start.color.a = 1.0; // Don't forget to set the alpha!
+  start.color.r = 0.0;
+  start.color.g = 1.0;
+  start.color.b = 0.0;
+  vis_pub_start_.publish( start );
+  
+  visualization_msgs::Marker goal;
+  goal.header.frame_id = "/map";
+  goal.header.stamp = ros::Time();
+  goal.ns = "rrt_start_goal_points1";
+  goal.id = 0;
+  goal.type = visualization_msgs::Marker::SPHERE;
+  goal.action = visualization_msgs::Marker::ADD;
+//  closest.action = 2;
+  goal.pose.position.x = std::get<0>(goal_node_);
+  goal.pose.position.y = std::get<1>(goal_node_);
+  goal.pose.position.z = 0.0;
+  goal.pose.orientation.x = 0.0;
+  goal.pose.orientation.y = 0.0;
+  goal.pose.orientation.z = 0.0;
+  goal.pose.orientation.w = 1.0;
+  goal.scale.x = 1;
+  goal.scale.y = 1;
+  goal.scale.z = 1;
+  goal.color.a = 1.0; // Don't forget to set the alpha!
+  goal.color.r = 1.0;
+  goal.color.g = 0.0;
+  goal.color.b = 0.0;
+  vis_pub_goal_.publish( goal );
+}
 
-  float f = 0.0;
-  while (ros::ok())
-  {
+void RRT::vizPath(){
 // %Tag(MARKER_INIT)%
     visualization_msgs::Marker points {};
     visualization_msgs::Marker line_strip{};
@@ -221,10 +273,17 @@ void RRT::viz(){
     marker_pub_.publish(line_strip);
     //marker_pub.publish(line_list);
 
-    r.sleep();
+}
 
-    f += 0.04;
+void RRT::viz(){
+  ros::Rate r(10);
+  while (ros::ok())
+  {
+//  %Final Path
+    vizPath();
+//  %Start and goal points
+    vizStartAndGoal();
+    r.sleep();
   }
-// %EndTag(FULLTEXT)%
 }
 
