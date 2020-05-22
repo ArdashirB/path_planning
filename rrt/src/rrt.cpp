@@ -8,7 +8,9 @@ RRT::RRT() : nh_("")
 	marker_pub_ = nh_.advertise<visualization_msgs::Marker>("rrt_visualization", 10);
     vis_pub_start_ = nh_.advertise<visualization_msgs::Marker>("start_visualization", 10);
     vis_pub_goal_ = nh_.advertise<visualization_msgs::Marker>("goal_visualization", 10);
+	vis_pub_obstacle_ = nh_.advertise<visualization_msgs::Marker>("obstacle_visualization", 10);
     //obstacles = new Obstacles;
+	robot_radius_ = 2.0f;
     start_pos_.x() = std::get<0>(start_node_);
     start_pos_.y() = std::get<1>(start_node_);
     end_pos_.x() = std::get<0>(goal_node_);;
@@ -19,8 +21,7 @@ RRT::RRT() : nh_("")
     last_node_ = root_;
     nodes_.push_back(root_);
     step_size_ = 1;
-
-
+	populateObstacles();
 	planPath();
 };
 
@@ -42,15 +43,17 @@ int main(int argc, char **argv)
 //  map_height_ = occ_grid_->info.height;
 //}
 
+
 Node* RRT::getRandomNode()
 {
     Node* ret;
     // Vector2f point(drand48() * map_width_ ,drand48() * map_height_);
     std::random_device dev;
     std::mt19937 rng(dev());
-    std::uniform_int_distribution<std::mt19937::result_type> dist(0, map_height_);
-    int it1 = dist(rng);
-    int it2 = dist(rng);
+    std::uniform_int_distribution<std::mt19937::result_type> dist1(0, map_width_);
+	std::uniform_int_distribution<std::mt19937::result_type> dist2(0, map_height_);
+    int it1 = dist1(rng);
+    int it2 = dist2(rng);
 
     Vector2f point(it1, it2);
     if (point.x() >= 0 && point.x() <= map_width_ && point.y() >= 0 && point.y() <= map_height_) {
@@ -73,11 +76,11 @@ Node* RRT::nearest(Vector2f point)
             min_dist= dist;
             closest = nodes_[i];
         }
-    }
+    }	
     return closest;
 }
 
-int RRT::distance(Vector2f &p, Vector2f &q)
+float RRT::distance(Vector2f &p, Vector2f &q)
 {
     Vector2f v = p - q;
     return sqrt(powf(v.x(), 2) + powf(v.y(), 2));
@@ -91,6 +94,33 @@ Vector2f RRT::newConfig(Node *q, Node *qNearest)
     intermediate = intermediate / intermediate.norm();
     Vector2f ret = from + step_size_ * intermediate;
     return ret;
+}
+
+void RRT::populateObstacles(){
+	int count {0};
+	auto p = [&](int row, int column){return  row*map_width_+column;};  
+	for (int row{map_height_}; row > -1; row--){
+		for (int column{0}; column < map_width_ ; column ++){
+			if (data[p(row,column)] == 1){
+				Vector2f obsPosition;
+				obsPosition.x() = column;
+				obsPosition.y() = count;
+				std::cout << row << "," << column << std::endl;
+				obstacles_.push_back(obsPosition);
+				}
+			}
+			count++;
+		}
+	}
+
+bool RRT::isNodeCloseToObstacle(Vector2f &newpoint){
+	for(auto obstacle:obstacles_){
+		// Checking if the discrete point is close to obstacles
+		if(distance(obstacle, newpoint) < robot_radius_) {// needs to be discretized point  
+			return true;
+		}
+	}
+	return false;
 }
 
 void RRT::add(Node *qNearest, Node *qNew)
@@ -117,7 +147,7 @@ void RRT::planPath(){
 			Node *qNearest = nearest(q->position);
 			if (distance(q->position, qNearest->position) > step_size_) {
 				Vector2f new_config = newConfig(q, qNearest);
-				if (true) {//{!rrt->obstacles->isSegmentInObstacle(newConfig, qNearest->position)
+				if (!isNodeCloseToObstacle(new_config)) {//{!rrt->obstacles->isSegmentInObstacle(newConfig, qNearest->position)
 					Node *qNew = new Node;
 					qNew->position = new_config;
                     // std::cout<<qNew->position.x()<<"\n";
@@ -201,7 +231,36 @@ void RRT::vizStartAndGoal()
   goal.color.g = 0.0;
   goal.color.b = 0.0;
   vis_pub_goal_.publish( goal );
-}
+  
+  // visualizing obstacles
+  visualization_msgs::Marker points {};
+    points.header.frame_id = "/map";
+    points.header.stamp = ros::Time::now();
+    points.ns = "rrt_path";
+    points.action =  visualization_msgs::Marker::ADD;
+    points.pose.orientation.w = 1.0;
+    points.id = 0;
+    points.type = visualization_msgs::Marker::POINTS;
+    points.scale.x = 1;
+    points.scale.y = 1;
+    // Points are green
+    points.color.g = 0.5f;
+    points.color.a = 1.0; 
+	points.color.r = 1.0;
+	points.color.b = 1.0;
+
+    // Create the vertices for the points and lines
+    for (auto obstacle: obstacles_)
+    {
+      geometry_msgs::Point p;
+      p.x = double(obstacle.x());
+      p.y = double(obstacle.y());
+      p.z = 0;
+      points.points.push_back(p);
+    }
+    vis_pub_obstacle_.publish(points);
+  }
+  
 
 void RRT::vizPath(){
     visualization_msgs::Marker points {};
