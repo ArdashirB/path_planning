@@ -4,25 +4,12 @@
 RRT::RRT() : nh_("")
 {
 //   add subscribers and init functions
-	//occ_grid_sub_ =  nh_.subscribe("occupancy_map", 1000, &RRT::occGridCallback, this);
+	occ_grid_sub_ =  nh_.subscribe("/occupancy_map", 1000, &RRT::occGridCallback, this);
 	marker_pub_ = nh_.advertise<visualization_msgs::Marker>("rrt_visualization", 10);
     vis_pub_start_ = nh_.advertise<visualization_msgs::Marker>("start_visualization", 10);
     vis_pub_goal_ = nh_.advertise<visualization_msgs::Marker>("goal_visualization", 10);
 	vis_pub_obstacle_ = nh_.advertise<visualization_msgs::Marker>("obstacle_visualization", 10);
     //obstacles = new Obstacles;
-	robot_radius_ = 2.0f;
-    start_pos_.x() = std::get<0>(start_node_);
-    start_pos_.y() = std::get<1>(start_node_);
-    end_pos_.x() = std::get<0>(goal_node_);;
-    end_pos_.y() = std::get<1>(goal_node_);;
-    root_ = new Node;
-    root_->parent = NULL;
-    root_->position = start_pos_;
-    last_node_ = root_;
-    nodes_.push_back(root_);
-    step_size_ = 1;
-	populateObstacles();
-	planPath();
 };
 
 RRT::~RRT(){};
@@ -36,13 +23,49 @@ int main(int argc, char **argv)
 };
 
 
-//void RRT::occGridCallback(const nav_msgs::OccupanyGrid::ConstPtr& msg)
-//{
-//  occ_grid_ = std::make_shared<nav_msgs::OccupancyGrid>(*msg);
-//  map_width_ = occ_grid_->info.width;
-//  map_height_ = occ_grid_->info.height;
-//}
+void RRT::occGridCallback(const nav_msgs::OccupancyGrid::ConstPtr& msg)
+{
+    occ_grid_ = std::make_shared<nav_msgs::OccupancyGrid>(*msg);
+    callEverything();
+}
 
+void RRT::populateObstacles(){
+    obstacles_.clear();
+    auto p = [&](int column, int row){return (row + map_height_/2)*map_width_+ (column + map_width_/2);}; 
+    for (int row = -map_height_/2; row < map_height_/2; row++){
+        for (int column = -map_width_/2; column < map_width_/2; column ++){
+            if (occ_grid_->data[p(column,row)] != 0){
+                Vector2f obsPosition;
+                obsPosition.x() = column;
+                obsPosition.y() = row;
+                // std::cout << row << "," << column << std::endl;
+                obstacles_.push_back(obsPosition);
+            }
+        }
+    }
+}
+void RRT::callEverything(){
+    auto start_time = std::chrono::high_resolution_clock::now();
+    map_width_ = occ_grid_->info.width;
+    map_height_ = occ_grid_->info.height;
+    robot_radius_ = 2.0f;
+    start_pos_.x() = std::get<0>(start_node_);
+    start_pos_.y() = std::get<1>(start_node_);
+    end_pos_.x() = std::get<0>(goal_node_);
+    end_pos_.y() = std::get<1>(goal_node_);
+    root_ = new Node;
+    root_->parent = NULL;
+    root_->position = start_pos_;
+    last_node_ = root_;
+    nodes_.push_back(root_);
+    step_size_ = 3;
+	populateObstacles();
+    planPath();
+    viz();
+    auto stop_time = std::chrono::high_resolution_clock::now();
+    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop_time - start_time);
+    std::cout<<"Execution Time: "<< duration.count() << " milliseconds" << std::endl;
+}
 
 Node* RRT::getRandomNode()
 {
@@ -50,13 +73,13 @@ Node* RRT::getRandomNode()
     // Vector2f point(drand48() * map_width_ ,drand48() * map_height_);
     std::random_device dev;
     std::mt19937 rng(dev());
-    std::uniform_int_distribution<std::mt19937::result_type> dist1(0, map_width_);
-	std::uniform_int_distribution<std::mt19937::result_type> dist2(0, map_height_);
+    std::uniform_int_distribution<std::mt19937::result_type> dist1(-map_width_/2, map_width_/2);
+	std::uniform_int_distribution<std::mt19937::result_type> dist2(-map_height_/2, map_height_/2);
     int it1 = dist1(rng);
     int it2 = dist2(rng);
 
     Vector2f point(it1, it2);
-    if (point.x() >= 0 && point.x() <= map_width_ && point.y() >= 0 && point.y() <= map_height_) {
+    if (point.x() >= -map_width_/2 && point.x() < map_width_/2 && point.y() >= -map_height_/2 && point.y() < map_height_/2) {
         ret = new Node;
         ret->position = point;
         // std::cout<<it1<<"\n";
@@ -96,22 +119,7 @@ Vector2f RRT::newConfig(Node *q, Node *qNearest)
     return ret;
 }
 
-void RRT::populateObstacles(){
-	int count {0};
-	auto p = [&](int row, int column){return  row*map_width_+column;};  
-	for (int row{map_height_}; row > -1; row--){
-		for (int column{0}; column < map_width_ ; column ++){
-			if (data[p(row,column)] == 1){
-				Vector2f obsPosition;
-				obsPosition.x() = column;
-				obsPosition.y() = count;
-				std::cout << row << "," << column << std::endl;
-				obstacles_.push_back(obsPosition);
-				}
-			}
-			count++;
-		}
-	}
+
 
 bool RRT::isNodeCloseToObstacle(Vector2f &newpoint){
 	for(auto obstacle:obstacles_){
@@ -133,25 +141,26 @@ void RRT::add(Node *qNearest, Node *qNew)
 
 bool RRT::reached()
 {
-    if (distance(last_node_->position, end_pos_) < 2.0)
+    if (distance(last_node_->position, end_pos_) < 5.0)
         return true;
     return false;
 }
 
 void RRT::planPath(){
 	// RRT Algorithm
-    auto start_time = std::chrono::high_resolution_clock::now();
+    path_.clear();
+    nodes_.clear();
+    nodes_.push_back(root_);
+    
 	for(int i = 0; i < max_iter_; i++) {
 		Node *q = getRandomNode();
 		if (q) {
 			Node *qNearest = nearest(q->position);
 			if (distance(q->position, qNearest->position) > step_size_) {
 				Vector2f new_config = newConfig(q, qNearest);
-				if (!isNodeCloseToObstacle(new_config)) {//{!rrt->obstacles->isSegmentInObstacle(newConfig, qNearest->position)
-					Node *qNew = new Node;
+				if (!isNodeCloseToObstacle(new_config)) {
+                    Node *qNew = new Node;
 					qNew->position = new_config;
-                    // std::cout<<qNew->position.x()<<"\n";
-                    // std::cout<<qNew->position.y()<<"\n";
 					add(qNearest, qNew);
 				}
 			}
@@ -176,16 +185,13 @@ void RRT::planPath(){
         path_.push_back(q);
         q = q->parent;
     }
-    auto stop_time = std::chrono::high_resolution_clock::now();
-    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop_time - start_time);
-    std::cout<<"Execution Time: "<< duration.count() << " milliseconds" << std::endl;
-    viz();
+    
 }
 
 void RRT::vizStartAndGoal()
 {
   visualization_msgs::Marker start;
-  start.header.frame_id = "/map";
+  start.header.frame_id = "/velodyne";
   start.header.stamp = ros::Time();
   start.ns = "rrt_start_goal_points";
   start.id = 0;
@@ -199,9 +205,9 @@ void RRT::vizStartAndGoal()
   start.pose.orientation.y = 0.0;
   start.pose.orientation.z = 0.0;
   start.pose.orientation.w = 1.0;
-  start.scale.x = 1;
-  start.scale.y = 1;
-  start.scale.z = 1;
+  start.scale.x = 3;
+  start.scale.y = 3;
+  start.scale.z = 3;
   start.color.a = 1.0; // Don't forget to set the alpha!
   start.color.r = 0.0;
   start.color.g = 1.0;
@@ -209,7 +215,7 @@ void RRT::vizStartAndGoal()
   vis_pub_start_.publish( start );
   
   visualization_msgs::Marker goal;
-  goal.header.frame_id = "/map";
+  goal.header.frame_id = "/velodyne";
   goal.header.stamp = ros::Time();
   goal.ns = "rrt_start_goal_points1";
   goal.id = 0;
@@ -223,9 +229,9 @@ void RRT::vizStartAndGoal()
   goal.pose.orientation.y = 0.0;
   goal.pose.orientation.z = 0.0;
   goal.pose.orientation.w = 1.0;
-  goal.scale.x = 1;
-  goal.scale.y = 1;
-  goal.scale.z = 1;
+  goal.scale.x = 3;
+  goal.scale.y = 3;
+  goal.scale.z = 3;
   goal.color.a = 1.0; // Don't forget to set the alpha!
   goal.color.r = 1.0;
   goal.color.g = 0.0;
@@ -234,7 +240,7 @@ void RRT::vizStartAndGoal()
   
   // visualizing obstacles
   visualization_msgs::Marker points {};
-    points.header.frame_id = "/map";
+    points.header.frame_id = "/velodyne";
     points.header.stamp = ros::Time::now();
     points.ns = "rrt_path";
     points.action =  visualization_msgs::Marker::ADD;
@@ -266,7 +272,7 @@ void RRT::vizPath(){
     visualization_msgs::Marker points {};
     visualization_msgs::Marker line_strip{};
     visualization_msgs::Marker line_list {};
-    points.header.frame_id = line_strip.header.frame_id = line_list.header.frame_id = "/map";
+    points.header.frame_id = line_strip.header.frame_id = line_list.header.frame_id = "/velodyne";
     points.header.stamp = line_strip.header.stamp = line_list.header.stamp = ros::Time::now();
     points.ns = line_strip.ns = line_list.ns = "rrt_path";
     points.action = line_strip.action = line_list.action = visualization_msgs::Marker::ADD;
@@ -277,10 +283,9 @@ void RRT::vizPath(){
     points.type = visualization_msgs::Marker::POINTS;
     line_strip.type = visualization_msgs::Marker::LINE_STRIP;
     line_list.type = visualization_msgs::Marker::LINE_LIST;
-    points.scale.x = 0.2;
-    points.scale.y = 0.2;
-    line_strip.scale.x = 0.1;
-    line_list.scale.x = 0.1;
+    points.scale.x = 1;
+    points.scale.y = 1;
+    line_strip.scale.x = 1;
     // Points are green
     points.color.g = 1.0f;
     points.color.a = 1.0;
@@ -310,14 +315,10 @@ void RRT::vizPath(){
 }
 
 void RRT::viz(){
-  ros::Rate r(10);
-  while (ros::ok())
-  {
+
 //  %Final Path
     vizPath();
 //  %Start and goal points
     vizStartAndGoal();
-    r.sleep();
-  }
 }
 

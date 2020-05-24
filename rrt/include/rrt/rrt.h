@@ -1,3 +1,9 @@
+/*
+TODO:
+- Introduce goal bias into node generation, something like a heuristic 
+- dual tree generation, from start and goal
+- rrt*
+*/
 #ifndef RRT_H
 #define RRT_H
 
@@ -41,8 +47,8 @@ class RRT{
 	ros::Publisher vis_pub_obstacle_ ;
     
     //Member variables
-    std::tuple<int, int> start_node_ {0 ,0};
-    std::tuple<int, int> goal_node_ {35, 15};
+    std::tuple<int, int> start_node_ {80,80};
+    std::tuple<int, int> goal_node_ {-90, -90};
     std::shared_ptr <nav_msgs::OccupancyGrid> occ_grid_;
 	std::vector <int> data {
 											0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
@@ -61,7 +67,7 @@ class RRT{
 											0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
 											0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
 	
-	int max_iter_ {3000};
+	int max_iter_ {30000};
 	int step_size_ ;
 	float robot_radius_;
 	std::vector<Node *> nodes_;
@@ -69,8 +75,8 @@ class RRT{
     Vector2f start_pos_ , end_pos_;
 	std::vector<Node *> path_;
     
-    unsigned int map_width_ {36}; //get from subscribers
-    unsigned int map_height_ {15};
+    int map_width_ {}; //36get from subscribers
+    int map_height_ {}; //15
     std::vector<Vector2f > obstacles_;
     
     //Member functions
@@ -81,6 +87,7 @@ class RRT{
     bool reached();
     void add(Node *qNearest, Node *qNew);
     void occGridCallback(const nav_msgs::OccupancyGrid::ConstPtr& msg);
+    void callEverything();
 	void spoofObstacles();
 	void populateObstacles();
 	bool isNodeCloseToObstacle(Vector2f &newPoint);
