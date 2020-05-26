@@ -1,6 +1,8 @@
 /*
 TODO:
-- Introduce goal bias into node generation, something like a heuristic 
+ * Introduce Vehicle Model - Fix qnearest generation and visualize vectors
+ * T-RRT
+ * - Introduce goal bias into node generation, something like a heuristic 
 - dual tree generation, from start and goal
 - rrt*
 */
@@ -25,7 +27,10 @@ using namespace Eigen;
 struct Node {
     std::vector<Node *> children;
     Node *parent;
+	
+	// States
     Vector2f position;
+	float theta;
 };
 
 
@@ -48,6 +53,7 @@ class RRT{
     
     //Member variables
     std::tuple<int, int> start_node_ {80,80};
+	float start_theta_{0};
     std::tuple<int, int> goal_node_ {-90, -90};
     std::shared_ptr <nav_msgs::OccupancyGrid> occ_grid_;
 	std::vector <int> data {
@@ -67,13 +73,17 @@ class RRT{
 											0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
 											0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
 	
-	int max_iter_ {30000};
+	int max_iter_ {50000};
 	int step_size_ ;
+	float step_time_;
 	float robot_radius_;
+	float velocity_;
 	std::vector<Node *> nodes_;
 	Node *root_, *last_node_;
     Vector2f start_pos_ , end_pos_;
 	std::vector<Node *> path_;
+	float delta_bound_;
+	float wheel_base_;
     
     int map_width_ {}; //36get from subscribers
     int map_height_ {}; //15
@@ -83,7 +93,8 @@ class RRT{
 	Node* getRandomNode();
     Node* nearest(Vector2f point);
     float distance(Vector2f &p, Vector2f &q);
-    Vector2f newConfig(Node *q, Node *qNearest);
+    //Vector2f newConfig(Node *q, Node *qNearest);
+	std::tuple<Vector2f,float> newConfig(Node *q, Node *qNearest);
     bool reached();
     void add(Node *qNearest, Node *qNew);
     void occGridCallback(const nav_msgs::OccupancyGrid::ConstPtr& msg);
