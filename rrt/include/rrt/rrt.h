@@ -15,7 +15,7 @@ TODO:
 #include <nav_msgs/OccupancyGrid.h>
 #include <math.h>
 #include <stdlib.h>
-#include <visualization_msgs/Marker.h>
+// #include <visualization_msgs/Marker.h>
 #include <cmath>
 #include <Eigen/Core>
 #include <tuple>
@@ -46,10 +46,7 @@ class RRT{
     ros::Subscriber occ_grid_sub_;
     
     //Publishers
-	ros::Publisher marker_pub_;
-	ros::Publisher vis_pub_start_ ;
-    ros::Publisher vis_pub_goal_ ;
-	ros::Publisher vis_pub_obstacle_ ;
+	
     
     //Member variables
     std::tuple<int, int> start_node_ {80,80};
@@ -106,9 +103,9 @@ class RRT{
     void setMaxIterations(int iter);
     void deleteNodes(Node *root);
 	void planPath();
-	void viz();
-	void vizStartAndGoal();
-    void vizPath();
+	// void viz();
+	// void vizStartAndGoal();
+    // void vizPath();
     
     };
 
