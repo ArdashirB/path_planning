@@ -1,5 +1,5 @@
 #include "rrt/rrt.h"
-
+#include "rrt/viz.h"
 
 RRT::RRT() : nh_("")
 {
@@ -71,7 +71,10 @@ Node* RRT::getRandomNode()
     std::uniform_int_distribution<std::mt19937::result_type> dist1(-map_width_/2, map_width_/2);
 	std::uniform_int_distribution<std::mt19937::result_type> dist2(-map_height_/2, map_height_/2);
     int it1 = dist1(rng);
-    int it2 = dist2(rng);
+    int it2 = dist2(rng);ros::Publisher marker_pub_;
+        ros::Publisher vis_pub_start_ ;
+        ros::Publisher vis_pub_goal_ ;
+        ros::Publisher vis_pub_obstacle_ ;
 
     Vector2f point(it1, it2);
     if (point.x() >= -map_width_/2 && point.x() < map_width_/2 && point.y() >= -map_height_/2 && point.y() < map_height_/2) {
@@ -93,7 +96,10 @@ Node* RRT::nearest(Vector2f point)
         if (dist < min_dist) {
             min_dist= dist;
             closest = nodes_[i];
-        }
+        }ros::Publisher marker_pub_;
+        ros::Publisher vis_pub_start_ ;
+        ros::Publisher vis_pub_goal_ ;
+        ros::Publisher vis_pub_obstacle_ ;
     }	
     return closest;
 }
@@ -117,7 +123,10 @@ Vector2f RRT::newConfig(Node *q, Node *qNearest)
 
 
 bool RRT::isNodeCloseToObstacle(Vector2f &newpoint){
-	for(auto obstacle:obstacles_){
+	for(auto obstacle:obstacles_){ros::Publisher marker_pub_;
+        ros::Publisher vis_pub_start_ ;
+        ros::Publisher vis_pub_goal_ ;
+        ros::Publisher vis_pub_obstacle_ ;
 		// Checking if the discrete point is close to obstacles
 		if(distance(obstacle, newpoint) < robot_radius_) {// needs to be discretized point  
 			return true;
@@ -182,6 +191,14 @@ void RRT::planPath(){
     }
     
 }
+
+ void RRT::viz(){
+	VIZ v;
+ //  %Final Path
+     v.vizPath(path_);
+ //  %Start and goal points
+     v.vizStartAndGoal(start_node_,goal_node_);
+ }
 
 // void RRT::vizStartAndGoal()
 // {
@@ -309,11 +326,5 @@ void RRT::planPath(){
 //     //marker_pub.publish(line_list);
 // }
 
-// void RRT::viz(){
 
-// //  %Final Path
-//     vizPath();
-// //  %Start and goal points
-//     vizStartAndGoal();
-// }
 

@@ -10,15 +10,6 @@
 
 using namespace Eigen;
 
-struct Node {
-    std::vector<Node *> children;
-    Node *parent;
-	
-	// States
-    Vector2f position;
-	float theta;
-};
-
 class VIZ{
     public:
         VIZ();
@@ -33,7 +24,8 @@ class VIZ{
         ros::Publisher vis_pub_obstacle_ ;
 
         //Member functions
-        void startAndGoal(std::tuple<int,int>, std::tuple<int,int>);
+		friend class RRT;
+        void vizStartAndGoal(std::tuple<int,int>, std::tuple<int,int>);
         void vizObstacles(std::vector<Vector2f>);
         void vizPath(std::vector<Node *>);
 

@@ -135,7 +135,7 @@ include_directories(
 
 )
 
-add_executable(rrt src/rrt_vehicle_model.cpp)
+add_executable(rrt src/rrt.cpp src/viz.cpp)
 add_dependencies(rrt ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 target_link_libraries(rrt ${catkin_LIBRARIES})
 ## Declare a C++ library

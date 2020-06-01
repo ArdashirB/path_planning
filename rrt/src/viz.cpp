@@ -1,12 +1,13 @@
+#include "rrt/rrt.h"
 #include "rrt/viz.h"
 
 VIZ::VIZ() : nh("")
 {
 //   add subscribers and init functions
-	marker_pub_ = nh_.advertise<visualization_msgs::Marker>("rrt_visualization", 10);
-    vis_pub_start_ = nh_.advertise<visualization_msgs::Marker>("start_visualization", 10);
-    vis_pub_goal_ = nh_.advertise<visualization_msgs::Marker>("goal_visualization", 10);
-	vis_pub_obstacle_ = nh_.advertise<visualization_msgs::Marker>("obstacle_visualization", 10);
+	marker_pub_ = nh.advertise<visualization_msgs::Marker>("rrt_visualization", 10);
+    vis_pub_start_ = nh.advertise<visualization_msgs::Marker>("start_visualization", 10);
+    vis_pub_goal_ = nh.advertise<visualization_msgs::Marker>("goal_visualization", 10);
+	vis_pub_obstacle_ = nh.advertise<visualization_msgs::Marker>("obstacle_visualization", 10);
 };
 VIZ::~VIZ(){};
 
@@ -119,7 +120,7 @@ void VIZ::vizPath(std::vector<Node *> path){
     // line_list.color.a = 1.0;
 
     // Create the vertices for the points and lines
-    for (auto node: path_)
+    for (auto node: path)
     {
       geometry_msgs::Point p;
       p.x = double(node->position.x());

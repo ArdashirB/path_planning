@@ -91,8 +91,8 @@ class RRT{
 	Node* getRandomNode();
     Node* nearest(Vector2f point);
     float distance(Vector2f &p, Vector2f &q);
-    Vector2f newConfig(Node *q, Node *qNearest);
-	//std::tuple<Vector2f,float> newConfig(Node *q, Node *qNearest);
+    //Vector2f newConfig(Node *q, Node *qNearest);
+	std::tuple<Vector2f,float> newConfig(Node *q, Node *qNearest);
     bool reached();
     void add(Node *qNearest, Node *qNew);
     void occGridCallback(const nav_msgs::OccupancyGrid::ConstPtr& msg);
